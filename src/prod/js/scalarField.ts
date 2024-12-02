@@ -1,6 +1,5 @@
 
-import * as wa from "../../../vibrato.js/latest/js/wa.js"
-import * as rt from "../../../vibrato.js/latest/js/rt.js"
+import { rt, wa } from "vibrato.js";
 import { vec4, Vec4 } from "./vector.js"
 
 export type ScalarFieldExports = {
@@ -18,22 +17,19 @@ export type SamplerExports = {
 }
 
 export const modulePaths = {
-    rawMem: "vibrato.js/latest/wa/rawMem.wasm",
-    mem: "vibrato.js/latest/wa/mem.wasm",
-    space: "vibrato.js/latest/wa/space.wasm",
-    scalarField: "aether/latest/wa/scalarField.wasm",
+    scalarField: "scalarField.wasm",
 }
 
 export type ScalarFieldModuleNames = keyof typeof modulePaths
 export type ScalarFieldModules = wa.WebAssemblyModules<ScalarFieldModuleNames>
 
-export async function loadScalarFieldModule(): Promise<ScalarFieldModule> {
+export async function loadScalarFieldModule(rtModules: rt.Runtime): Promise<ScalarFieldModule> {
     const modules = await wa.webLoadModules("", modulePaths)
-    return scalarFieldModule(modules)
+    return scalarFieldModule(modules, rtModules)
 }
 
-export function scalarFieldModule(modules: ScalarFieldModules): ScalarFieldModule {
-    return new ScalarFieldModuleImpl(modules)
+export function scalarFieldModule(modules: ScalarFieldModules, rtModules: rt.Runtime): ScalarFieldModule {
+    return new ScalarFieldModuleImpl(modules, rtModules)
 }
 
 export type ScalarFieldSampler = (x: number, y: number, z: number, w?: number) => Vec4
@@ -65,10 +61,15 @@ export interface ScalarFieldInstance {
 
 class ScalarFieldModuleImpl implements ScalarFieldModule {
 
-    private linker: wa.Linker<ScalarFieldModuleNames>
+    private linker: wa.Linker<ScalarFieldModuleNames | Exclude<rt.RuntimeModuleNames, "delay">>
 
-    constructor(readonly modules: ScalarFieldModules) {
-        this.linker = new wa.Linker(modules)
+    constructor(readonly modules: ScalarFieldModules, private rtModules: rt.Runtime) {
+        this.linker = new wa.Linker({
+            rawMem: rtModules.modules.rawMem,
+            mem: rtModules.modules.mem,
+            space: rtModules.modules.space,
+            ...modules
+        })
     }
 
     newInstance(): ScalarFieldInstance {
