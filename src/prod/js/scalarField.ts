@@ -23,9 +23,9 @@ export const modulePaths = {
 export type ScalarFieldModuleNames = keyof typeof modulePaths
 export type ScalarFieldModules = wa.WebAssemblyModules<ScalarFieldModuleNames>
 
-export async function loadScalarFieldModule(rtModules: rt.Runtime): Promise<ScalarFieldModule> {
+export async function loadScalarFieldModule(): Promise<ScalarFieldModule> {
     const modules = await wa.webLoadModules("", modulePaths)
-    return scalarFieldModule(modules, rtModules)
+    return scalarFieldModule(modules, await rt.runtime())
 }
 
 export function scalarFieldModule(modules: ScalarFieldModules, rtModules: rt.Runtime): ScalarFieldModule {
