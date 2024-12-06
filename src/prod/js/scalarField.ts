@@ -1,5 +1,5 @@
 
-import { rt, wa } from "vibrato.js";
+import { rt, wa } from "vibrato.js/core";
 import { vec4, Vec4 } from "./vector.js"
 
 export type ScalarFieldExports = {
@@ -24,7 +24,7 @@ export type ScalarFieldModuleNames = keyof typeof modulePaths
 export type ScalarFieldModules = wa.WebAssemblyModules<ScalarFieldModuleNames>
 
 export async function loadScalarFieldModule(): Promise<ScalarFieldModule> {
-    const modules = await wa.webLoadModules("", modulePaths)
+    const modules = await wa.webLoadModules(import.meta.url + "/../../wa", modulePaths)
     return scalarFieldModule(modules, await rt.runtime())
 }
 

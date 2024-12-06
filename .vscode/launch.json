@@ -10,7 +10,7 @@
                 "--require", "source-map-support/register",
                 "--timeout", "120000000",
                 // "--fgrep", ">>>",
-                "\"${workspaceFolder}/root/aether/test/js/**/*.test.js\"",
+                "\"${workspaceFolder}/out/test/js/**/*.test.js\"",
             ],
             "console": "integratedTerminal",
             "preLaunchTask": "tsc: build"

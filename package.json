@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "A linear algebra and a basic math/physics library for graphics, gaming, and simulation applications.",
   "type": "module",
-  "exports": "./index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
   "scripts": {
     "clean": "node ./scripts/clean.js",
     "build-wa": "node ./scripts/build-wa.js",
@@ -30,12 +32,10 @@
   },
   "homepage": "https://github.com/ghadeeras/aether#readme",
   "files": [
-    "index.js",
-    "index.d.ts",
-    "lib",
-    "doc"
+    "lib"
   ],
   "devDependencies": {
+    "@types/node": "^22.2.0",
     "@types/chai": "^4.3.17",
     "@types/mocha": "^10.0.7",
     "@types/seedrandom": "^3.0.8",
@@ -48,7 +48,6 @@
     "typescript": "5.7.2"
   },
   "dependencies": {
-    "@types/node": "^22.2.0",
     "vibrato.js": "git+https://github.com/ghadeeras/vibrato.js.git"
   }
 }
