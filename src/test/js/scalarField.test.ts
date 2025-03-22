@@ -1,7 +1,9 @@
 import { expect } from "chai"
 import { approximateEquality } from "./test.utils.js"
-import { rtNode, waNode } from "vibrato.js"
+import * as wa from "../../prod/js/wa.js";
+import * as rt from "../../prod/js/rt.js";
 import * as aether from "../../prod/index.js"
+import fs from "fs"
 
 const scalarFieldModule = loadScalarFieldModule()
 
@@ -127,10 +129,9 @@ function randomSamples(resolution: number): aether.Vec4[][][] {
 }
 
 function loadScalarFieldModule(): aether.ScalarFieldModule {
-    const modules = waNode.fsLoadModules("./out/prod/wa", {
+    const modules = wa.syncLoadModules("./out/prod/wa", {
         ...aether.modulePaths,
-        scalarField: aether.modulePaths.scalarField.replace("latest", "prod"),
-    })
-    return aether.scalarFieldModule(modules, rtNode.runtime())
+        scalarField: aether.modulePaths.scalarField.replace("latest", "prod")
+    }, fs.readFileSync)
+    return aether.scalarFieldModule(modules, rt.syncRuntime(null, fs.readFileSync))
 }
-

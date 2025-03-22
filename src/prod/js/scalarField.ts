@@ -1,5 +1,6 @@
 
-import { rt, wa } from "vibrato.js/core";
+import * as wa from "./wa.js";
+import * as rt from "./rt.js";
 import { vec4, Vec4 } from "./vector.js"
 
 export type ScalarFieldExports = {
@@ -24,7 +25,7 @@ export type ScalarFieldModuleNames = keyof typeof modulePaths
 export type ScalarFieldModules = wa.WebAssemblyModules<ScalarFieldModuleNames>
 
 export async function loadScalarFieldModule(): Promise<ScalarFieldModule> {
-    const modules = await wa.webLoadModules(import.meta.url + "/../../wa", modulePaths)
+    const modules = await wa.loadModules(import.meta.url + "/../../wa", modulePaths)
     return scalarFieldModule(modules, await rt.runtime())
 }
 
@@ -61,15 +62,7 @@ export interface ScalarFieldInstance {
 
 class ScalarFieldModuleImpl implements ScalarFieldModule {
 
-    private linker: wa.Linker<ScalarFieldModuleNames | Exclude<rt.RuntimeModuleNames, "delay">>
-
     constructor(readonly modules: ScalarFieldModules, private rtModules: rt.Runtime) {
-        this.linker = new wa.Linker({
-            rawMem: rtModules.modules.rawMem,
-            mem: rtModules.modules.mem,
-            space: rtModules.modules.space,
-            ...modules
-        })
     }
 
     newInstance(): ScalarFieldInstance {
@@ -78,20 +71,23 @@ class ScalarFieldModuleImpl implements ScalarFieldModule {
                 throw new Error("Unimplemented!")
             }
         }
-        const instances = this.linker.link({
-            sampler: {
-                exports: {
-                    sampleAt: function(x: number, y: number, z: number, result: rt.Reference) {
-                        samplerProxy.sampleAt(x, y, z, result)
+        const instances = new wa.Linker({
+                ...this.rtModules.instances,
+                sampler: {
+                    exports: {
+                        sampleAt: function(x: number, y: number, z: number, result: rt.Reference) {
+                            samplerProxy.sampleAt(x, y, z, result)
+                        }
                     }
                 }
-            }
-        })
+            })
+            .link(this.modules)
+            .instances
         return new ScalarFieldInstanceImpl(
             samplerProxy,
-            instances.mem.exports as rt.MemExports, 
-            instances.space.exports as rt.SpaceExports, 
-            instances.scalarField.exports as ScalarFieldExports
+            instances.mem.exports, 
+            instances.space.exports, 
+            instances.scalarField.exports
         )
     }
     
