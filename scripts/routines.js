@@ -21,7 +21,7 @@ export function compileRuntime() {
         const code = buffer.toString("utf-8")
         try {
             const module = binaryen.parseText(code)
-            module.setFeatures(binaryen.Features.BulkMemory)
+            module.setFeatures(binaryen.Features.BulkMemoryOpt)
             module.optimize()
             const binary = module.emitBinary()
             fs.writeFileSync(`${waOut}/${watFile.replace(".wat", ".wasm")}`, binary)
