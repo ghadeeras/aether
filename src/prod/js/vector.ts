@@ -1,4 +1,4 @@
-import { Mat, Mat2, Mat3, Mat4 } from "./matrix.js";
+import * as mat from "./matrix.js";
 
 export type Dim = 2 | 3 | 4
 
@@ -42,6 +42,8 @@ export interface VecMath<D extends Dim> {
 
     div(v1: Vec<D>, v2: Vec<D>): Vec<D>
 
+    distance(v1: Vec<D>, v2: Vec<D>): number
+
     scale(v: Vec<D>, f: number): Vec<D>
 
     max(v1: Vec<D>, v2: Vec<D>): Vec<D>
@@ -66,7 +68,12 @@ export interface VecMath<D extends Dim> {
 
     length(v: Vec<D>): number
 
+    // @deprecated use withLength instead
     setLength(v: Vec<D>, l: number): Vec<D>
+
+    withLength(l: number, v: Vec<D>): Vec<D>
+
+    withInverseLength(v: Vec<D>): Vec<D>
 
     unit(v: Vec<D>): Vec<D>
 
@@ -76,11 +83,13 @@ export interface VecMath<D extends Dim> {
 
     angle(v1: Vec<D>, v2: Vec<D>): number
 
-    prod(v: Vec<D>, m: Mat<D>): Vec<D>
+    prod(v: Vec<D>, m: mat.Mat<D>): Vec<D>
 
     project(v1: Vec<D>, v2: Vec<D>): Vec<D>
 
     reject(v1: Vec<D>, v2: Vec<D>): Vec<D>
+
+    equal(v1: Vec<D>, v2: Vec<D>, precision?: number): boolean
 
 }
 
@@ -126,11 +135,15 @@ abstract class VecMathBase<D extends Dim> implements VecMath<D> {
 
     abstract dot(v1: Vec<D>, v2: Vec<D>): number
 
-    abstract prod(v: Vec<D>, m: Mat<D>): Vec<D>
+    abstract prod(v: Vec<D>, m: mat.Mat<D>): Vec<D>
 
     abstract project(v1: Vec<D>, v2: Vec<D>): Vec<D>
 
     abstract reject(v1: Vec<D>, v2: Vec<D>): Vec<D>
+
+    distance(v1: Vec<D>, v2: Vec<D>): number {
+        return this.length(this.sub(v1, v2))
+    }
 
     lengthSquared(v: Vec<D>): number {
         return this.dot(v, v)
@@ -140,8 +153,17 @@ abstract class VecMathBase<D extends Dim> implements VecMath<D> {
         return Math.sqrt(this.lengthSquared(v))
     }
     
+    // @deprecated use withLength instead
     setLength(v: Vec<D>, l: number): Vec<D> {
+        return this.withLength(l, v)
+    }
+    
+    withLength(l: number, v: Vec<D>): Vec<D> {
         return this.scale(v, l / this.length(v))
+    }
+    
+    withInverseLength(v: Vec<D>): Vec<D> {
+        return this.scale(v, 1 / this.lengthSquared(v))
     }
     
     unit(v: Vec<D>): Vec<D> {
@@ -156,14 +178,16 @@ abstract class VecMathBase<D extends Dim> implements VecMath<D> {
         return this.scale(this.add(this.scale(v1, w1), this.scale(v2, w2)), 1 / (w1 + w2))
     }
 
-    angle(v1: Vec<D>, v2: Vec<D>) {
+    angle(v1: Vec<D>, v2: Vec<D>): number {
         const l1 = this.lengthSquared(v1);
         const l2 = this.lengthSquared(v2);
         const dot = this.dot(v1, v2);
-        const cos2 = (dot * dot) / (l1 * l2);
-        const cos2x = 2 * cos2 - 1;
-        const x = Math.acos(cos2x) / 2;
-        return x;
+        const cos = dot / Math.sqrt(l1 * l2);
+        return Math.acos(cos);
+    }
+
+    equal(v1: Vec<D>, v2: Vec<D>, precision: number = 0.001) {
+        return this.angle(v1, v2) < precision && this.distance(v1, v2) < precision
     }
 
 }
@@ -222,7 +246,7 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
             v1[0] + v2[0],
             v1[1] + v2[1],
             v1[2] + v2[2],
-            v1[3] + v2[3]
+            v1[3] + v2[3],
         ]
     }
     
@@ -231,7 +255,7 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
             v1[0] - v2[0],
             v1[1] - v2[1],
             v1[2] - v2[2],
-            v1[3] - v2[3]
+            v1[3] - v2[3],
         ]
     }
     
@@ -240,7 +264,7 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
             v1[0] * v2[0],
             v1[1] * v2[1],
             v1[2] * v2[2],
-            v1[3] * v2[3]
+            v1[3] * v2[3],
         ]
     }
     
@@ -249,7 +273,7 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
             v1[0] / v2[0],
             v1[1] / v2[1],
             v1[2] / v2[2],
-            v1[3] / v2[3]
+            v1[3] / v2[3],
         ]
     }
     
@@ -258,7 +282,7 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
             v[0] * f,
             v[1] * f,
             v[2] * f,
-            v[3] * f
+            v[3] * f,
         ]
     }
     
@@ -267,7 +291,7 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
             Math.max(v1[0] , v2[0]),
             Math.max(v1[1] , v2[1]),
             Math.max(v1[2] , v2[2]),
-            Math.max(v1[3] , v2[3])
+            Math.max(v1[3] , v2[3]),
         ]
     }
     
@@ -276,7 +300,7 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
             Math.min(v1[0] , v2[0]),
             Math.min(v1[1] , v2[1]),
             Math.min(v1[2] , v2[2]),
-            Math.min(v1[3] , v2[3])
+            Math.min(v1[3] , v2[3]),
         ]
     }
     
@@ -285,7 +309,7 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
             -v[0],
             -v[1],
             -v[2],
-            -v[3]
+            -v[3],
         ]
     }
     
@@ -307,12 +331,12 @@ export class ImmutableVec4Math extends ImmutableVecMathBase<4> {
         )
     }
     
-    prod(v: Vec4, m: Mat4): Vec4 {
+    prod(v: Vec4, m: mat.Mat4): Vec4 {
         return [
             this.dot(v, m[0]),
             this.dot(v, m[1]),
             this.dot(v, m[2]),
-            this.dot(v, m[3])
+            this.dot(v, m[3]),
         ]
     }
 
@@ -427,19 +451,12 @@ export class ImmutableVec3Math extends ImmutableVecMathBase<3> {
         ]
     }
     
-    prod(v: Vec3, m: Mat3): Vec3 {
+    prod(v: Vec3, m: mat.Mat3): Vec3 {
         return [
             this.dot(v, m[0]),
             this.dot(v, m[1]),
             this.dot(v, m[2])
         ]
-    }
-
-    equal(v1: Vec3, v2: Vec3, precision: number = 0.001) {
-        const cross = this.length(this.cross(v1, v2));
-        const dot = this.dot(v1, v2);
-        const tan = cross / dot;
-        return tan < precision && tan > -precision;
     }
 
 }
@@ -535,7 +552,7 @@ export class ImmutableVec2Math extends ImmutableVecMathBase<2> {
         )
     }
     
-    prod(v: Vec2, m: Mat2): Vec2 {
+    prod(v: Vec2, m: mat.Mat2): Vec2 {
         return [
             this.dot(v, m[0]),
             this.dot(v, m[1])
@@ -549,13 +566,6 @@ export class ImmutableVec2Math extends ImmutableVecMathBase<2> {
         )
     }
     
-    equal(v1: Vec2, v2: Vec2, precision: number = 0.001) {
-        const cross = this.cross(v1, v2);
-        const dot = this.dot(v1, v2);
-        const tan = cross / dot;
-        return tan < precision && tan > -precision;
-    }
-
 }
 
 export abstract class MutableVecMathBase<D extends Dim> extends VecMathBase<D> {
@@ -604,7 +614,7 @@ export abstract class MutableVecMathBase<D extends Dim> extends VecMathBase<D> {
         return this.immutable.dot(v1, v2)
     }
     
-    prod(v: Vec<D>, m: Mat<D>): Vec<D> {
+    prod(v: Vec<D>, m: mat.Mat<D>): Vec<D> {
         return this.immutable.prod(v, m)
     }
 
