@@ -8,6 +8,8 @@ export type Mat4 = Mat<4>
 
 export interface MatMath<D extends vec.Dim> {
 
+    of(m: Mat<D>): Mat<D>
+
     from(array: vec.NumberArray, offset?: number): Mat<D>
 
     gen(...columns: [() => vec.Vec<D>] | vec.Tuple<() => vec.Vec<D>, D>): () => Mat<D>
@@ -38,11 +40,19 @@ export interface MatMath<D extends vec.Dim> {
 
     inverse(m: Mat<D>): Mat<D>
 
+    comatrix(m: Mat<D>): Mat<D>
+
+    orthogonal(matrix: Mat<D>, keepScale?: boolean): Mat<D>
+
     columnMajorArray(m: Mat<D>): number[]
 
 }
 
 export class Mat4Math implements MatMath<4> {
+
+    of(m: Mat4): Mat4 {
+        return m
+    }
 
     from(array: vec.NumberArray, offset: number = 0): Mat4 {
         return [
@@ -286,6 +296,38 @@ export class Mat4Math implements MatMath<4> {
         ], 1 / det)
     }
 
+    comatrix(m: Mat4): Mat4 {
+        return [[
+            +this.minor(m, 0, 0),
+            -this.minor(m, 0, 1),
+            +this.minor(m, 0, 2),
+            -this.minor(m, 0, 3),
+        ], [
+            -this.minor(m, 1, 0),
+            +this.minor(m, 1, 1),
+            -this.minor(m, 1, 2),
+            +this.minor(m, 1, 3),            
+        ], [
+            +this.minor(m, 2, 0),
+            -this.minor(m, 2, 1),
+            +this.minor(m, 2, 2),
+            -this.minor(m, 2, 3),
+        ], [
+            -this.minor(m, 3, 0),
+            +this.minor(m, 3, 1),
+            -this.minor(m, 3, 2),
+            +this.minor(m, 3, 3),
+        ]]
+    }
+
+    orthogonal(matrix: Mat4, keepScale?: boolean): Mat4 {
+        const s = keepScale ? this.determinant(matrix) ** (1 / 3) : 1
+        const x = vec.vec4.withLength(s, matrix[0]);
+        const y = vec.vec4.withLength(s, vec.vec4.subAll(matrix[1], vec.vec4.project(matrix[1], x)));
+        const z = vec.vec4.withLength(s, vec.vec4.subAll(matrix[2], vec.vec4.project(matrix[2], x), vec.vec4.project(matrix[2], y)));
+        return [x, y, z, matrix[3]];
+    }
+
     columnMajorArray(m: Mat4): number[] {
         return [
             ...m[0],
@@ -300,7 +342,7 @@ export class Mat4Math implements MatMath<4> {
     }
 
     private subMat(m: Mat4, col: vec.Component<4>, row: vec.Component<4>): Mat3 {
-        const m3x4: vec.Tuple<vec.Vec4, 3> = vec.deleteComponent<vec.Vec4, 4>(m, col)
+        const m3x4 = vec.deleteComponent<vec.Vec4, 4>(m, col)
         return [
             vec.deleteComponent<number, 4>(m3x4[0], row),
             vec.deleteComponent<number, 4>(m3x4[1], row),
@@ -311,6 +353,10 @@ export class Mat4Math implements MatMath<4> {
 }
 
 export class Mat3Math implements MatMath<3> {
+
+    of(m: Mat3): Mat3 {
+        return m
+    }
 
     from(array: vec.NumberArray, offset = 0): Mat3 {
         return [
@@ -517,11 +563,25 @@ export class Mat3Math implements MatMath<3> {
     }
 
     inverse(m: Mat3): Mat3 {
-        const v1x2 = vec.vec3.cross(m[1], m[2])
-        const v2x0 = vec.vec3.cross(m[2], m[0])
-        const v0x1 = vec.vec3.cross(m[0], m[1])
-        const det = vec.vec3.dot(v0x1, m[2])
-        return this.scale(this.transpose([v1x2, v2x0, v0x1]), 1 / det)
+        const coM = this.comatrix(m)
+        const det = vec.vec3.dot(coM[0], m[0])
+        return this.scale(this.transpose(coM), 1 / det)
+    }
+
+    comatrix(m: Mat3): Mat3 {
+        return [
+            vec.vec3.cross(m[1], m[2]),
+            vec.vec3.cross(m[2], m[0]),
+            vec.vec3.cross(m[0], m[1]),
+        ]
+    }
+
+    orthogonal(matrix: Mat3, keepScale?: boolean): Mat3 {
+        const s = keepScale ? this.determinant(matrix) ** (1 / 3) : 1
+        const x = vec.vec3.withLength(s, matrix[0]);
+        const y = vec.vec3.withLength(s, vec.vec3.subAll(matrix[1], vec.vec3.project(matrix[1], x)));
+        const z = vec.vec3.withLength(s, vec.vec3.subAll(matrix[2], vec.vec3.project(matrix[2], x), vec.vec3.project(matrix[2], y)));
+        return [x, y, z];
     }
 
     columnMajorArray(m: Mat3): number[] {
@@ -535,6 +595,10 @@ export class Mat3Math implements MatMath<3> {
 }
 
 export class Mat2Math implements MatMath<2> {
+
+    of(m: Mat2): Mat2 {
+        return m
+    }
 
     from(array: vec.NumberArray, offset = 0): Mat2 {
         return [
@@ -660,6 +724,20 @@ export class Mat2Math implements MatMath<2> {
         )
     }
 
+    comatrix(m: Mat2): Mat2 {
+        return [
+            [+m[1][1], -m[1][0]],
+            [-m[0][1], +m[0][0]],
+        ]
+    }
+    
+    orthogonal(matrix: Mat2, keepScale?: boolean): Mat2 {
+        const s = keepScale ? Math.sqrt(this.determinant(matrix)) : 1
+        const x = vec.vec2.withLength(s, matrix[0]);
+        const y = vec.vec2.withLength(s, vec.vec2.subAll(matrix[1], vec.vec2.project(matrix[1], x)));
+        return [x, y];
+    }
+
     columnMajorArray(m: Mat2): number[] {
         return [
             ...m[0],
@@ -672,6 +750,24 @@ export class Mat2Math implements MatMath<2> {
 export function coordinateSystem<D extends vec.Dim>(math: MatMath<D>, s: Mat<D>): (m: Mat<D>) => Mat<D> {
     const invS = math.inverse(s)
     return m => math.mul(s, math.mul(m, invS))
+}
+
+export function isIdentity<D extends vec.Dim>(m: Mat<D>): boolean {
+    const dim = m.length
+    for (let i = 0; i < dim; i++) {
+        for (let j = i; j < dim; j++) {
+            if (i === j) {
+                if (m[i][j] !== 1) {
+                    return false
+                }
+            } else {
+                if (m[i][j] !== 0 || m[j][i] !== 0) {
+                    return false
+                }
+            }
+        }
+    }
+    return true
 }
 
 export const mat4 = new Mat4Math()
