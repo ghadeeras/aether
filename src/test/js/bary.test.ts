@@ -2,7 +2,7 @@ import { expect } from "chai"
 import { Bary } from "../../prod/index.js"
 import { approximateEquality, EPSILON, math3, using } from "./test.utils.js"
 
-describe(">>> bary", using(() => {
+describe("bary", using(() => {
 
     it("has symmetric functions, toCartesian and fromCartesian, that inverse each other", using(gen => {
         const math = math3(gen)
