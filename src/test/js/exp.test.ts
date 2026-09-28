@@ -1,4 +1,4 @@
-import { Expression } from "../../prod/js/exp.js"
+import { Expression } from "../../prod/index.js"
 
 describe("Exp", () => {
 
